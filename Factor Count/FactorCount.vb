@@ -14,12 +14,47 @@ Public Class FactorCount
     Public miFalseRecultCounter As Integer = 0
     Public miLoopCounter As Integer = 0
     Public msResultList As New ArrayList
-    Public msResultSummary As New ArrayList
 
     Public mbLoading As Boolean = False
 
     Dim mdStartTime As Date
     Dim mdEndTime As Date
+
+#Region "AddNumber"
+    Private Sub btnAdd_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnAdd.Click
+        Call AddNumber()
+    End Sub
+
+    Private Sub txtSample_KeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles txtSample.KeyDown
+        If e.KeyCode = Keys.Enter Then
+            Call AddNumber()
+        End If
+    End Sub
+
+    Private Sub AddNumber()
+        If bIsNumber(Me.txtSample.Text) Then
+            Me.ListBox1.Items.Add(Me.txtSample.Text)
+            Me.txtSample.Text = ""
+            Me.txtSample.Focus()
+        Else
+            MsgBox("Please input number.")
+            Me.txtSample.Focus()
+        End If
+    End Sub
+#End Region
+
+    Private Sub btnClear_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnClear.Click
+        Me.ListBox1.Items.Clear()
+        Me.Timer1.Stop()
+    End Sub
+
+    Private Sub btnGenerate_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnGenerate.Click
+
+        If bValid() = True Then
+
+            Call Me.GenerateData()
+        End If
+    End Sub
 
     Private Function bValid() As Boolean
         If bIsNumber(Me.txtFactor.Text) Then
@@ -45,34 +80,6 @@ Public Class FactorCount
 
     End Function
 
-    Private Sub btnAdd_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnAdd.Click
-        Call AddNumber()
-    End Sub
-
-    Private Sub AddNumber()
-        If bIsNumber(Me.txtSample.Text) Then
-            Me.ListBox1.Items.Add(Me.txtSample.Text)
-            Me.txtSample.Text = ""
-            Me.txtSample.Focus()
-        Else
-            MsgBox("Please input number.")
-            Me.txtSample.Focus()
-        End If
-    End Sub
-
-    Private Sub btnClear_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnClear.Click
-        Me.ListBox1.Items.Clear()
-        Me.Timer1.Stop()
-    End Sub
-
-    Private Sub btnGenerate_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnGenerate.Click
-
-        If bValid() = True Then
-
-            Call Me.GenerateData()
-        End If
-    End Sub
-
     Private Sub btnDefaultGenerate_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnDefaultGenerate.Click
 
         Me.ListBox1.Items.Add(200)
@@ -81,40 +88,7 @@ Public Class FactorCount
         Me.ListBox1.Items.Add(210)
         Me.ListBox1.Items.Add(115)
         Me.txtFactor.Text = 125
-        Call GenerateData()
-
-    End Sub
-
-#Region "Initial Setting"
-    Private Function iFindMinimumnInput() As Integer
-        Dim liMini As Integer = 20000
-        For Each liInput As Integer In miInputList
-            If liMini > liInput Then
-                liMini = liInput
-            End If
-        Next
-
-        Return liMini
-    End Function
-    Private Sub BuildStartPercentList()
-        For Each liInput As Integer In miInputList
-            miStartPercentList.Add(iMinimizedStartPercent(liInput))
-        Next
-    End Sub
-    Public Function iMinimizedStartPercent(ByVal piInteger As Integer) As Integer
-        If piInteger <> miMinimumnInput Then
-            Return ((miFactor - miMinimumnInput) / (piInteger - miMinimumnInput)) * 100
-        Else
-            Return 100
-        End If
-
-    End Function
-    Private Sub BuildInputList()
-        For Each liItem In Me.ListBox1.Items
-            miInputList.Add(CInt(liItem.ToString()))
-        Next
-        miInputList.Sort()
-        miInputList.Reverse()
+        Call Me.GenerateData()
 
     End Sub
 
@@ -123,13 +97,11 @@ Public Class FactorCount
         miStartPercentList.Clear()
         miInputList.Clear()
         msResultList.Clear()
-        msResultSummary.Clear()
         Me.lblResult.Text = ""
         miFactor = Me.txtFactor.Text
         miTrueRecultCounter = 0
         miFalseRecultCounter = 0
         miLoopCounter = 0
-
 
         miFactorUpperLimit = miFactor * (mi100Percent + miErrorPercent)
         miFactorLowerLimit = miFactor * (mi100Percent - miErrorPercent)
@@ -153,28 +125,88 @@ Public Class FactorCount
 
         Call nsThread.ParallelFunctionWithOutInvoke(AddressOf sThread)
     End Sub
+
+#Region "Initial Setting"
+    Private Sub BuildInputList()
+        For Each liItem As String In Me.ListBox1.Items
+            miInputList.Add(CInt(liItem.ToString()))
+        Next
+        miInputList.Sort()
+        miInputList.Reverse()
+
+    End Sub
+
+    Private Function iFindMinimumnInput() As Integer
+        Dim liMini As Integer = 20000
+        For Each liInput As Integer In miInputList
+            If liMini > liInput Then
+                liMini = liInput
+            End If
+        Next
+
+        Return liMini
+    End Function
+
+    Private Sub BuildStartPercentList()
+        For Each liInput As Integer In miInputList
+            miStartPercentList.Add(iMinimizedStartPercent(liInput))
+        Next
+    End Sub
+
+    Public Function iMinimizedStartPercent(ByVal piInteger As Integer) As Integer
+        If piInteger <> miMinimumnInput Then
+            Return ((miFactor - miMinimumnInput) / (piInteger - miMinimumnInput)) * 100
+        Else
+            Return 100
+        End If
+
+    End Function
+
+    Private Function sColumnHeader() As String
+        Dim lsText As String = ""
+        For Each liItem As String In Me.miInputList
+            lsText += liItem & " "
+        Next
+        Return lsText
+    End Function
+
     Private Sub sThread()
 
         Call sFinding100Combination(0, 0, "")
 
         Call WriteArraylistToFile("Result.txt", Me.msResultList)
-        '  Call WriteArraylistToFile("ResultSummary.txt", Me.msResultSummary)
 
         mbLoading = False
         mdEndTime = Now
         Process.Start(".")
     End Sub
-    Private Function sColumnHeader() As String
-        Dim lsText As String = ""
-        For Each liItem In Me.miInputList
-            lsText += liItem & " "
-        Next
-        Return lsText
-    End Function
-    Private Sub AddResult(ByVal psString As String)
-        Me.lblResult.Text = psString
 
-    End Sub
+
+    Public Function WriteArraylistToFile(ByVal psDirPath As String, ByVal pArrayList As ArrayList) As ArrayList
+        Dim compare_arraylist As ArrayList = New ArrayList
+
+        If File.Exists(psDirPath) Then
+            File.Delete(psDirPath)
+        End If
+
+        Dim fs As FileStream = New FileStream(psDirPath, FileMode.OpenOrCreate, FileAccess.ReadWrite)
+        Dim w As StreamWriter = New StreamWriter(fs)
+        w.BaseStream.Seek(0, SeekOrigin.Begin)
+        Dim aaa As String
+        For Each aaa In pArrayList
+            If compare_arraylist.Contains(aaa) Then
+            Else
+                compare_arraylist.Add(aaa)
+                w.WriteLine(aaa, Unicode)
+            End If
+
+        Next
+        w.Flush() ' update underlying file
+        w.Close()
+        w.Dispose()
+
+        Return pArrayList
+    End Function
 
 #End Region
 
@@ -206,7 +238,7 @@ Public Class FactorCount
                                 Exit Sub
                             End If
                         Else
-                            sFinding100Combination(liPercentSum, piListPosition + 1, lsPrintString)
+                            Call sFinding100Combination(liPercentSum, piListPosition + 1, lsPrintString)
                         End If
 
                     Else
@@ -223,6 +255,24 @@ Public Class FactorCount
         End While
 
     End Sub
+
+    Private Function bCheckLimit(ByVal psPrintString As String, ByVal psPercentSum As Integer) As Boolean
+        Dim liResultFactor As Double = dCalculateFactor(psPrintString)
+        Dim liRemainFactor As Double = (mi100Percent - psPercentSum) * miMinimumnInput
+        liResultFactor = liResultFactor + liRemainFactor
+
+        Dim lbResult As Boolean = False
+        If liResultFactor <= miFactorUpperLimit Then
+            ' Debug.Print("within Limit : = " & psPrintString & " Factor : = " & liResultFactor.ToString)
+            lbResult = True
+
+        Else
+            ' Debug.Print("Over Limit : = " & psPrintString & " Factor : = " & liResultFactor.ToString)
+            lbResult = False
+
+        End If
+        Return lbResult
+    End Function
 
     Private Function bUpdateCurrentPercent(ByVal psPrintString As String, _
                     ByVal piListPosition As Integer, _
@@ -250,16 +300,6 @@ Public Class FactorCount
         End If
     End Function
 
-    Private Function dCalculateFactor(ByVal psPrintString As String) As Double
-        ' 計算現有的 factor 值.
-        Dim lList As String() = psPrintString.Split(" ")
-        Dim liResultFactor As Double
-        For i As Integer = 0 To lList.Length - 2
-            liResultFactor += CDbl(lList(i)) * miInputList(i)
-        Next
-        Return liResultFactor
-    End Function
-
     Private Function bCheck100Result(ByVal psPrintString As String) As Boolean
         ' 可以使用誤差
         Dim liResultFactor As Double = dCalculateFactor(psPrintString)
@@ -277,72 +317,38 @@ Public Class FactorCount
         Return lbResult
     End Function
 
-    Private Function bCheckLimit(ByVal psPrintString As String, ByVal psPercentSum As Integer) As Boolean
-        Dim liResultFactor As Double = dCalculateFactor(psPrintString)
-        Dim liRemainFactor As Double = (mi100Percent - psPercentSum) * miMinimumnInput
-        liResultFactor = liResultFactor + liRemainFactor
-
-        Dim lbResult As Boolean = False
-        If liResultFactor <= miFactorUpperLimit Then
-            ' Debug.Print("within Limit : = " & psPrintString & " Factor : = " & liResultFactor.ToString)
-            lbResult = True
-
-        Else
-            ' Debug.Print("Over Limit : = " & psPrintString & " Factor : = " & liResultFactor.ToString)
-            lbResult = False
-
-        End If
-        Return lbResult
+    Private Function dCalculateFactor(ByVal psPrintString As String) As Double
+        ' 計算現有的 factor 值.
+        Dim lList As String() = psPrintString.Split(" ")
+        Dim liResultFactor As Double
+        For i As Integer = 0 To lList.Length - 2
+            liResultFactor += CDbl(lList(i)) * miInputList(i)
+        Next
+        Return liResultFactor
     End Function
+
 #End Region
 
-    Public Function WriteArraylistToFile(ByVal psDirPath As String, ByVal pArrayList As ArrayList) As ArrayList
-        Dim compare_arraylist As ArrayList = New ArrayList
-
-        If File.Exists(psDirPath) Then
-            File.Delete(psDirPath)
-        End If
-
-        Dim fs As FileStream = New FileStream(psDirPath, FileMode.OpenOrCreate, FileAccess.ReadWrite)
-        Dim w As StreamWriter = New StreamWriter(fs)
-        w.BaseStream.Seek(0, SeekOrigin.Begin)
-        Dim aaa As String
-        For Each aaa In pArrayList
-            If compare_arraylist.Contains(aaa) Then
-            Else
-                compare_arraylist.Add(aaa)
-                w.WriteLine(aaa, Unicode)
-            End If
-
-        Next
-        w.Flush() ' update underlying file
-        w.Close()
-        w.Dispose()
-
-        Return pArrayList
-    End Function
-
     Private Sub Timer1_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Timer1.Tick
-        Dim totalTime As TimeSpan
+        Dim liTimeUse As TimeSpan
         If mbLoading Then
-            totalTime = Now.Subtract(mdStartTime)
+            liTimeUse = Now.Subtract(mdStartTime)
         Else
-            totalTime = mdEndTime.Subtract(mdStartTime)
+            liTimeUse = mdEndTime.Subtract(mdStartTime)
         End If
         Dim lsString As String = "Result.txt is the Data Result." & vbNewLine & _
             "No Of True Result:" & miTrueRecultCounter & vbNewLine & _
              "Looping Counter:" & miLoopCounter & vbNewLine & _
               "No Of False Result:" & miFalseRecultCounter & vbNewLine & _
-                " Time take : " & totalTime.Duration.ToString
+                " Time take : " & liTimeUse.Duration.ToString
 
         Call AddResult(lsString)
 
     End Sub
 
-    Private Sub txtSample_KeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles txtSample.KeyDown
-        If e.KeyCode = Keys.Enter Then
-            Call AddNumber()
-        End If
+    Private Sub AddResult(ByVal psString As String)
+        Me.lblResult.Text = psString
+
     End Sub
 
 End Class
